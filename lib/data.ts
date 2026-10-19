@@ -28,17 +28,17 @@ export const metrics: {
   short: string;
   color: string;
 }[] = [
-  { key: "total", label: "Total SG", short: "Total", color: "#d5ef94" },
-  { key: "ott", label: "Off the tee", short: "OTT", color: "#a0cfbc" },
-  { key: "app", label: "Approach", short: "APP", color: "#d5ef94" },
-  { key: "arg", label: "Around the green", short: "ARG", color: "#e8c58a" },
-  { key: "putt", label: "Putting", short: "PUTT", color: "#b7a7de" },
+  { key: "total", label: "Total SG", short: "Total", color: "#32634d" },
+  { key: "ott", label: "Off the tee", short: "OTT", color: "#4e907a" },
+  { key: "app", label: "Approach", short: "APP", color: "#32634d" },
+  { key: "arg", label: "Around the green", short: "ARG", color: "#b96c2d" },
+  { key: "putt", label: "Putting", short: "PUTT", color: "#8064bb" },
 ];
 export const teamColors: Record<string, string> = {
-  "Team Wesley": "#c0d98a",
-  "Team Brad": "#a2c7e9",
-  "Team George": "#d4adcf",
-  "Team Grant": "#e8be87",
+  "Team Wesley": "#32634d",
+  "Team Brad": "#547f96",
+  "Team George": "#8064bb",
+  "Team Grant": "#b96c2d",
 };
 export const signed = (value: number) =>
   `${value > 0 ? "+" : ""}${value.toFixed(2)}`;

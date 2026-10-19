@@ -16,6 +16,8 @@ import {
   Minimize2,
   Search,
   X,
+  Users,
+  UserRound,
 } from "lucide-react";
 import {
   Bar,
@@ -42,8 +44,11 @@ import {
   type PlayerRecord,
 } from "@/lib/data";
 
-type View = "leaderboard" | "matrix" | "compare";
-const comparisonColors = ["#d5ef94", "#a2c7e9", "#d4adcf"];
+import { aggregateTeams } from "@/lib/team-stats";
+import { TeamView, PlayerView } from "@/components/focus-views";
+
+type View = "leaderboard" | "matrix" | "compare" | "teams" | "player";
+const comparisonColors = ["#32634d", "#8064bb", "#b96c2d"];
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<Period>("Season");
@@ -68,7 +73,7 @@ export default function Dashboard() {
       setPeriod(p.get("period") as Period);
     if (metrics.some((m) => m.key === p.get("metric")))
       setMetric(p.get("metric") as Metric);
-    if (["leaderboard", "matrix", "compare"].includes(p.get("view") ?? ""))
+    if (["leaderboard", "matrix", "compare", "teams", "player"].includes(p.get("view") ?? ""))
       setView(p.get("view") as View);
     if (["All teams", ...Object.keys(teamColors)].includes(p.get("team") ?? ""))
       setTeam(p.get("team")!);
@@ -80,6 +85,7 @@ export default function Dashboard() {
           .filter((n) => records.some((r) => r.player === n))
           .slice(0, 3),
       );
+    if (records.some((r) => r.player === p.get("player"))) setFocused(p.get("player")!);
     if (p.has("q")) setQuery(p.get("q")!);
     if (p.get("wildcards") === "false") setIncludeWildcards(false);
     if (p.get("present") === "true") setPresentation(true);
@@ -94,6 +100,7 @@ export default function Dashboard() {
       view,
       team,
       players: selected.join(","),
+      player: focused,
       wildcards: String(includeWildcards),
     });
     if (query) params.set("q", query);
@@ -106,6 +113,7 @@ export default function Dashboard() {
     view,
     team,
     selected,
+    focused,
     includeWildcards,
     query,
     presentation,
@@ -144,12 +152,17 @@ export default function Dashboard() {
     [field, team, query, includeWildcards, metric],
   );
   const active = filtered.find((r) => r.player === focused) ?? filtered[0];
+  const focusRecord = field.find((r) => r.player === focused);
+  const teamRows = aggregateTeams(field.filter((r) => includeWildcards || r.role !== "Wildcard"));
   const comparison = selected
     .map((name) => field.find((r) => r.player === name))
     .filter((r): r is PlayerRecord => Boolean(r));
   const metricLabel = metrics.find((m) => m.key === metric)!.label;
+  const summaryRows = view === "teams" || view === "player"
+    ? field.filter((r) => includeWildcards || r.role !== "Wildcard")
+    : filtered;
   const best = (key: Metric) =>
-    [...filtered].sort((a, b) => b[key] - a[key])[0];
+    [...summaryRows].sort((a, b) => b[key] - a[key])[0];
   const chartData = metrics
     .slice(1)
     .map((m) => ({
@@ -252,7 +265,7 @@ export default function Dashboard() {
             ))}
           </div>
           <div className="filter-right">
-            <label className="select-wrap">
+            <label className="select-wrap" hidden={view === "teams" || view === "player"}>
               <span className="sr-only">Team</span>
               <span
                 className="team-dot"
@@ -266,7 +279,7 @@ export default function Dashboard() {
               </select>
               <ChevronDown size={14} />
             </label>
-            <label className="search">
+            <label className="search" hidden={view === "teams" || view === "player"}>
               <Search size={15} />
               <span className="sr-only">Search players</span>
               <input
@@ -285,7 +298,7 @@ export default function Dashboard() {
 
         <section
           className="summary-grid"
-          aria-label="Category leaders in filtered field"
+          aria-label={view === "teams" || view === "player" ? "Category leaders at selected period" : "Category leaders in filtered field"}
         >
           {(["total", "ott", "app", "putt"] as Metric[]).map((key, i) => {
             const leader = best(key);
@@ -335,6 +348,8 @@ export default function Dashboard() {
                 [
                   { id: "leaderboard", name: "Leaderboard", Icon: BarChart3 },
                   { id: "matrix", name: "Category matrix", Icon: Grid2X2 },
+                  { id: "teams", name: "Teams", Icon: Users },
+                  { id: "player", name: "Player", Icon: UserRound },
                   {
                     id: "compare",
                     name: "Compare players",
@@ -355,6 +370,7 @@ export default function Dashboard() {
             </div>
             <button
               className="button subtle export-button"
+              hidden={view === "teams" || view === "player"}
               disabled={!filtered.length}
               onClick={downloadCsv}
             >
@@ -363,7 +379,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {view !== "compare" && (
+          {(view === "leaderboard" || view === "matrix") && (
             <div className="chart-controls">
               <div
                 className="metric-tabs"
@@ -440,6 +456,7 @@ export default function Dashboard() {
               {active && (
                 <PlayerSpotlight
                   record={active}
+                  onOpen={() => { setFocused(active.player); setView("player"); }}
                   onCompare={() => {
                     setSelected(
                       [
@@ -495,7 +512,7 @@ export default function Dashboard() {
                               className="matrix-player"
                               onClick={() => {
                                 setFocused(r.player);
-                                setView("leaderboard");
+                                setView("player");
                               }}
                             >
                               <span
@@ -514,8 +531,8 @@ export default function Dashboard() {
                                 style={{
                                   background:
                                     r[m.key] >= 0
-                                      ? `rgba(186, 220, 136, ${Math.min(Math.abs(r[m.key]) / 12, 0.75) + 0.06})`
-                                      : `rgba(210, 125, 119, ${Math.min(Math.abs(r[m.key]) / 12, 0.75) + 0.06})`,
+                                      ? `rgba(128, 167, 98, ${Math.min(Math.abs(r[m.key]) / 18, 0.4) + 0.06})`
+                                      : `rgba(203, 119, 82, ${Math.min(Math.abs(r[m.key]) / 18, 0.4) + 0.06})`,
                                 }}
                                 title={`${r.player}: ${signed(r[m.key])} ${m.label}`}
                               >
@@ -537,6 +554,17 @@ export default function Dashboard() {
                 />
               )}
             </section>
+          )}
+
+          {view === "teams" && (
+            <TeamView teams={teamRows} period={period} includeWildcards={includeWildcards}
+              onWildcards={setIncludeWildcards} onPlayer={(name) => { setFocused(name); setView("player"); }} />
+          )}
+          {view === "player" && (
+            <PlayerView name={focused} record={focusRecord} period={period}
+              onSelect={setFocused} onPeriod={setPeriod} onCompare={() => {
+                setSelected([focused, ...selected.filter((n) => n !== focused)].slice(0, 3)); setView("compare");
+              }} />
           )}
 
           {view === "compare" && (
@@ -587,36 +615,36 @@ export default function Dashboard() {
                       >
                         <CartesianGrid
                           vertical={false}
-                          stroke="#2d3933"
+                          stroke="var(--line)"
                           strokeDasharray="3 5"
                         />
                         <XAxis
                           dataKey="category"
-                          tick={{ fill: "#a6b1a8", fontSize: 12 }}
+                          tick={{ fill: "var(--muted)", fontSize: 12 }}
                           axisLine={false}
                           tickLine={false}
                           interval={0}
                         />
                         <YAxis
-                          tick={{ fill: "#a6b1a8", fontSize: 12 }}
+                          tick={{ fill: "var(--muted)", fontSize: 12 }}
                           axisLine={false}
                           tickLine={false}
                           width={42}
                         />
                         <Tooltip
                           contentStyle={{
-                            background: "#19261e",
-                            border: "1px solid #42503f",
+                            background: "var(--panel)",
+                            border: "1px solid var(--line)",
                             borderRadius: 10,
-                            color: "#f1f2e9",
+                            color: "var(--text)",
                           }}
                           formatter={(value) => signed(Number(value))}
-                          cursor={{ fill: "rgba(255,255,255,.025)" }}
+                          cursor={{ fill: "rgba(22,56,45,.04)" }}
                         />
                         <Legend
                           wrapperStyle={{ paddingTop: 15, fontSize: 13 }}
                         />
-                        <ReferenceLine y={0} stroke="#778477" />
+                        <ReferenceLine y={0} stroke="var(--muted)" />
                         {comparison.map((r, i) => (
                           <Bar
                             key={r.player}
@@ -762,9 +790,11 @@ function Ranking({
 function PlayerSpotlight({
   record: r,
   onCompare,
+  onOpen,
 }: {
   record: PlayerRecord;
   onCompare: () => void;
+  onOpen: () => void;
 }) {
   const stops = records.filter(
     (row) => row.player === r.player && row.period !== "Season",
@@ -828,6 +858,7 @@ function PlayerSpotlight({
           </div>
         ))}
       </div>
+      <button className="button profile-cta" onClick={onOpen}><UserRound size={15} />Full player view<ArrowUpRight size={14} /></button>
       <button className="button compare-cta" onClick={onCompare}>
         <GitCompareArrows size={15} />
         Compare player

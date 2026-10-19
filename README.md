@@ -4,7 +4,7 @@ A Next.js dashboard for exploring Your Golf Tour strokes gained, built for inter
 
 ## Run locally
 
-Use Node.js 22 or newer.
+Use Node.js 22.18 or newer (Node 24 recommended).
 
 ```bash
 npm ci
@@ -33,10 +33,12 @@ Vercel detects `npm run build`. Connect the Git repository to enable automatic d
 - Switch between season totals, Pursell Farms, and Rams Hill.
 - Filter the leaderboard and category matrix by team, player name, and wildcard participation.
 - Select a leaderboard row for the player's category breakdown and stop-by-stop totals.
-- Select a matrix column heading to sort by that category.
+- Select a matrix column heading to sort by that category. Click a player to open their full profile.
+- Open **Teams** for four cards ranked by summed cumulative SG, with identical category scales and clickable player contributions. Stop views offer wildcard inclusion; season totals include regular players only. Team and search filters do not apply here.
+- Open **Player** (or **Full player view** from the spotlight) for a player selector, category bars, tracked shots, YGT rank, and a selectable stop-by-stop table. Wildcards retain their identity in unavailable periods and offer their recorded stop. Team and search filters do not apply here.
 - Compare up to three players with grouped category bars. Comparison selections use the full field for the selected period independently of team/search filters.
 - Export the current filtered data as CSV.
-- Use **Share view** to copy a URL preserving the current filters, comparison selections, and view.
+- Use **Share view** to copy a URL preserving the current filters, comparison selections, focused player, and view.
 - Use **Present** to hide the introduction, summary cards, and footer for recording. Press Escape or **Exit presentation** to return. Browser fullscreen can be used separately.
 
 ## Data and interpretation
@@ -54,3 +56,7 @@ This is an independent project and is not affiliated with Your Golf Tour. Data b
 ## Stack
 
 Next.js App Router, TypeScript, React, Recharts for player comparison charts, Lucide icons, and CSS. Leaderboard bars and matrix cells use accessible HTML controls. A Google Fonts stylesheet enhances typography, with Arial as an offline fallback.
+
+## Visual design
+
+Citrus Club uses off-white `#F7F8F2`, forest `#16382D`, sage `#E8EDE5`, lime `#D5F544`, and lilac `#B5A0EF`. Darker supporting chart colors preserve label contrast on the light surfaces. Positive and negative bars retain explicit signed values and a zero line.

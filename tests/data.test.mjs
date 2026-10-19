@@ -55,3 +55,25 @@ test("season values are the sum of the matching stops, with YGT rank preserved",
       );
   });
 });
+
+test("team totals conserve the field and respect wildcard exclusion", async () => {
+  const { aggregateTeams } = await import("../lib/team-stats.ts");
+  for (const period of ["Season", "Pursell Farms", "Rams Hill"]) {
+    for (const includeWildcards of [true, false]) {
+      const field = data.filter((r) => r.period === period && (includeWildcards || r.role !== "Wildcard"));
+      const teams = aggregateTeams(field);
+      assert.equal(teams.length, 4);
+      assert.equal(teams.reduce((n, t) => n + t.players.length, 0), field.length);
+      assert.equal(teams.reduce((n, t) => n + t.shots, 0), field.reduce((n, r) => n + r.shots, 0));
+      for (const key of metrics) {
+        assert.ok(Math.abs(teams.reduce((n, t) => n + t[key], 0) - field.reduce((n, r) => n + r[key], 0)) < .001);
+      }
+      for (const team of teams) {
+        assert.ok(team.players.every((p) => p.team === team.team));
+        assert.ok(Math.abs(team.total - (team.ott + team.app + team.arg + team.putt)) < .011);
+      }
+    }
+  }
+  assert.throws(() => aggregateTeams(data), /single period/);
+  assert.deepEqual(aggregateTeams([]), []);
+});
